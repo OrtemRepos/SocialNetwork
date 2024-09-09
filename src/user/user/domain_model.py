@@ -1,5 +1,5 @@
+from typing import Union
 from user.user.error import (
-                             AccessDenied,
                              AlreadyFriend,
                              AlreadySentRequest,
                              NotFound
@@ -43,11 +43,19 @@ class User:
     def __hash__(self) -> int:
         return hash(self.id)
 
-    def _add_friend(self, user: "User"):
+    def _add_friend(self, user: 'User'):
         self._friend.add(user)
         user._friend.add(self)
 
-    def send_friendrequest(self, user: "User", msg: str = None) -> FriendRequest | None:  # noqa: E501
+    def remove_from_friend(self, user: 'User') -> Union['User', None]:
+        if user in self._friend:
+            self._friend.remove(user)
+            user._friend.remove(self)
+            user.send_friendrequest(self)
+            return user
+        raise NotFound(f"User {user=} not in friend list")
+
+    def send_friendrequest(self, user: 'User', msg: str = None) -> FriendRequest | None:  # noqa: E501
         if user in self._friend:
             raise AlreadyFriend(f"User {user=} already in friend list")
         request = FriendRequest(sender_id=self.id,
@@ -68,15 +76,14 @@ class User:
         user._request.add(request)
         return request
 
-    def reject_friendrequest(self, user: "User") -> FriendRequest | None:  # noqa: E501
+    def reject_friendrequest(self, user: 'User') -> FriendRequest | None:  # noqa: E501
         request = self.get_request(user)
-        if request in self.receive_request:
+        if request in self._request:
             self._request.remove(request)
             user._request.remove(request)
             return request
-        raise AccessDenied("You can't reject this request")
 
-    def get_request(self, user: "User") -> FriendRequest | None:
+    def get_request(self, user: 'User') -> FriendRequest | None:
         for request in self._request:
             if request.receiver_id == user.id or request.sender_id == user.id:
                 return request

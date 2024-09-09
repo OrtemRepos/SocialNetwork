@@ -1,5 +1,4 @@
 from user.user.error import (
-    AccessDenied,
     AlreadyFriend,
     AlreadySentRequest,
     NotFound
@@ -108,3 +107,44 @@ def test_reject_request(two_samples):
     assert request2 == request
     assert request not in user_1._request
     assert request not in user_2._request
+
+
+def test_try_reject_missing_request(two_samples):
+    user_1, user_2 = two_samples
+    with pytest.raises(NotFound):
+        user_1.reject_friendrequest(user_2)
+
+
+def test_try_send_request_if_you_friend(two_samples):
+    user_1, user_2 = two_samples
+    user_1.send_friendrequest(user_2)
+    user_2.send_friendrequest(user_1)
+    with pytest.raises(AlreadyFriend):
+        user_1.send_friendrequest(user_2)
+    with pytest.raises(AlreadyFriend):
+        user_2.send_friendrequest(user_1)
+
+
+def test_remove_from_friend(two_samples):
+    user_1, user_2 = two_samples
+    user_1.send_friendrequest(user_2)
+    user_2.send_friendrequest(user_1)
+    res = user_1.remove_from_friend(user_2)
+
+    assert res == user_2
+    assert user_2 not in user_1._friend
+    assert user_1 not in user_2._friend
+
+
+def test_auto_friendrequest_after_remove_from_friend(two_samples):
+    user_1, user_2 = two_samples
+    user_1.send_friendrequest(user_2)
+    user_2.send_friendrequest(user_1)
+    user_1.remove_from_friend(user_2)
+
+    assert user_1 not in user_2._friend
+    assert user_2 not in user_1._friend
+
+    request = user_2.get_request(user_1)
+    assert request in user_1.receive_request
+    assert request in user_2.send_request
