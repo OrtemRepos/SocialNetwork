@@ -1,8 +1,4 @@
-from user.user.error import (
-    AlreadyFriend,
-    AlreadySentRequest,
-    NotFound
-)
+from user.user.error import AlreadyFriend, AlreadySentRequest, NotFound
 from uuid import uuid4
 import pytest
 from user.user.domain_model import User
@@ -14,8 +10,7 @@ uuid2 = uuid4()
 @pytest.fixture
 def sample():
     return User(
-        id=uuid1, email="email@example.com",
-        first_name="first", last_name="last"
+        id=uuid1, email="email@example.com", first_name="first", last_name="last"
     )
 
 
@@ -23,11 +18,11 @@ def sample():
 def two_samples():
     return (
         User(
-            id=uuid1, email="email1@example.com",
-            first_name="first", last_name="last"),
+            id=uuid1, email="email1@example.com", first_name="first", last_name="last"
+        ),
         User(
-            id=uuid2, email="email2@example.com",
-            first_name="first", last_name="last")
+            id=uuid2, email="email2@example.com", first_name="first", last_name="last"
+        ),
     )
 
 
@@ -41,33 +36,27 @@ def test_create(sample):
 
 def test_eq(sample):
     assert sample == User(
-        id=uuid1, email="email@example.com",
-        first_name="first", last_name="last"
+        id=uuid1, email="email@example.com", first_name="first", last_name="last"
     )
 
     assert sample == User(
-        id=uuid1, email="email@example.com",
-        first_name="as", last_name="last"
+        id=uuid1, email="email@example.com", first_name="as", last_name="last"
     )
 
     assert sample == User(
-        id=uuid1, email="email@example.com",
-        first_name="first", last_name="as"
+        id=uuid1, email="email@example.com", first_name="first", last_name="as"
     )
 
     assert sample == User(
-        id=uuid1, email="email@example.com",
-        first_name="d", last_name="d"
+        id=uuid1, email="email@example.com", first_name="d", last_name="d"
     )
 
     assert sample == User(
-        id=uuid1, email="email1@example.com",
-        first_name="first", last_name="last"
+        id=uuid1, email="email1@example.com", first_name="first", last_name="last"
     )
 
     assert sample != User(
-        id=uuid2, email="email@example.com",
-        first_name="first", last_name="last"
+        id=uuid2, email="email@example.com", first_name="first", last_name="last"
     )
 
 
