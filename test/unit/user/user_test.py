@@ -1,9 +1,12 @@
-import os
-os.environ['PYTHONPATH'] = os.path.join(os.getcwd(), 'src')
-
-from uuid import uuid4  # noqa: E402
-import pytest  # noqa: E402
-from user.user.domain_model import User  # noqa: E402
+from user.user.error import (
+    AccessDenied,
+    AlreadyFriend,
+    AlreadySentRequest,
+    NotFound
+)
+from uuid import uuid4
+import pytest
+from user.user.domain_model import User
 
 uuid1 = uuid4()
 uuid2 = uuid4()
@@ -94,7 +97,7 @@ def test_send_request(two_samples):
 def test_dont_send_two_request(two_samples):
     user_1, user_2 = two_samples
     user_1.send_friendrequest(user_2)
-    with pytest.raises(Exception):
+    with pytest.raises(AlreadySentRequest):
         user_1.send_friendrequest(user_2)
 
 

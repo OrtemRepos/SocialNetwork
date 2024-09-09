@@ -54,7 +54,7 @@ class User:
                                 receiver_id=user.id,
                                 msg=msg)
 
-        if request in user.send_request:
+        if request in self.send_request:
             raise AlreadySentRequest("You have already sent a friend request")
         accept_request = FriendRequest(
             sender_id=user.id, receiver_id=self.id, msg=msg
