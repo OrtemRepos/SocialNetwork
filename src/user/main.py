@@ -1,6 +1,7 @@
 import uvicorn
-import web
 from fastapi import FastAPI
+
+import web
 
 app = FastAPI()
 

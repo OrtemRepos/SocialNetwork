@@ -3,7 +3,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
-from sqlalchemy import TIMESTAMP, ForeignKey, text
+from sqlalchemy import TIMESTAMP, Column, ForeignKey, Table, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 created_at = Annotated[
@@ -41,14 +41,10 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     last_name: Mapped[str]
     created_at: Mapped[created_at]
     update_at: Mapped[updated_at]
-    friend: Mapped[list["User"]] = relationship(
-        "User", secondary="friend", back_populates="friend"
-    )
+    friend: Mapped[set["Friend"]] = relationship()
 
 
 class Friend(Base):
     __tablename__ = "friend"
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"), primary_key=True)
-    friend_id: Mapped[list[UUID]] = mapped_column(
-        ForeignKey("user.id"), primary_key=True
-    )
+    user_id: Mapped[UUID] = mapped_column(primary_key=True)
+    friend_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"))

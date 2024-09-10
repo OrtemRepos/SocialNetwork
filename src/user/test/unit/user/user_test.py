@@ -1,4 +1,4 @@
-from user.user.error import AlreadyFriend, AlreadySentRequest, NotFound
+from user.user import error
 from uuid import uuid4
 import pytest
 from user.user.domain_model import User
@@ -85,7 +85,7 @@ def test_send_request(two_samples):
 def test_dont_send_two_request(two_samples):
     user_1, user_2 = two_samples
     user_1.send_friendrequest(user_2)
-    with pytest.raises(AlreadySentRequest):
+    with pytest.raises(error.AlreadySentRequest):
         user_1.send_friendrequest(user_2)
 
 
@@ -100,7 +100,7 @@ def test_reject_request(two_samples):
 
 def test_try_reject_missing_request(two_samples):
     user_1, user_2 = two_samples
-    with pytest.raises(NotFound):
+    with pytest.raises(error.NotFound):
         user_1.reject_friendrequest(user_2)
 
 
@@ -108,9 +108,9 @@ def test_try_send_request_if_you_friend(two_samples):
     user_1, user_2 = two_samples
     user_1.send_friendrequest(user_2)
     user_2.send_friendrequest(user_1)
-    with pytest.raises(AlreadyFriend):
+    with pytest.raises(error.AlreadyFriend):
         user_1.send_friendrequest(user_2)
-    with pytest.raises(AlreadyFriend):
+    with pytest.raises(error.AlreadyFriend):
         user_2.send_friendrequest(user_1)
 
 

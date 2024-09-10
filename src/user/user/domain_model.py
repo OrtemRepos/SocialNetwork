@@ -1,11 +1,11 @@
-from typing import Union
-from user.user.error import AlreadyFriend, AlreadySentRequest, NotFound
-
 from datetime import datetime
+from typing import Union
+
 from fastapi_users.models import ID
-from user.user.schema import UserRead
 from pydantic import BaseModel, ConfigDict, EmailStr
 
+from user.user.error import AlreadyFriend, AlreadySentRequest, NotFound
+from user.user.schema import UserRead
 
 class FriendRequest(BaseModel):
     sender_id: ID
@@ -87,8 +87,12 @@ class User:
 
     @property
     def send_request(self):
-        return [request for request in self._request if request.sender_id == self.id]
+        return [
+            request for request in self._request if request.sender_id == self.id
+        ]  # noqa: E501
 
     @property
     def receive_request(self):
-        return [request for request in self._request if request.receiver_id == self.id]
+        return [
+            request for request in self._request if request.receiver_id == self.id
+        ]  # noqa: E501
