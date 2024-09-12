@@ -2,6 +2,12 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv(".env")
+load_dotenv("src/auth/.auth.env")
 
-SECRET_TOKEN_FOR_AUTH = os.environ.get("SECRET_TOKEN_FOR_AUTH")
+
+class Config:
+    def __init__(self):
+        self.SECRET_TOKEN_FOR_AUTH = os.environ.get("SECRET_TOKEN_FOR_AUTH")
+
+
+config = Config()
