@@ -1,19 +1,22 @@
 import uuid
 
+import redis.asyncio
 from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, UUIDIDMixin
 from fastapi_users.authentication import (
     AuthenticationBackend,
     CookieTransport,
-    JWTStrategy,
+    RedisStrategy,
 )
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 
-from src.auth.config import SECRET_TOKEN_FOR_AUTH
+from src.auth.config import config as auth_config
+from src.config import config
 from src.database import get_user_db
 from src.models import User
 
-SECRET = SECRET_TOKEN_FOR_AUTH
+SECRET = auth_config.SECRET_TOKEN_FOR_AUTH
+redis = redis.asyncio.from_url(config.REDIS_URL, decode_responses=True)
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
@@ -53,12 +56,10 @@ cookie_transport = CookieTransport(
 )
 
 
-def get_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
+def get_redis_strategy() -> RedisStrategy:
+    return RedisStrategy(redis, lifetime_seconds=3600)
 
 
 auth_backend = AuthenticationBackend(
-    name="jwt",
-    transport=cookie_transport,
-    get_strategy=get_jwt_strategy,
+    name="jwt", transport=cookie_transport, get_strategy=get_redis_strategy
 )

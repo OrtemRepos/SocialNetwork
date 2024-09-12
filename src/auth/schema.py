@@ -6,7 +6,6 @@ from pydantic import EmailStr, Field
 
 
 class UserRead(schemas.BaseUser[UUID]):
-    id: UUID = Field(repr=True)
     first_name: str = Field(repr=True)
     last_name: str = Field(repr=True)
     email: str = Field(repr=True)
