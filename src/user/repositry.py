@@ -2,19 +2,16 @@ import asyncio
 import functools
 from abc import ABC, abstractmethod
 from contextlib import asynccontextmanager
-from typing import List
-from uuid import UUID, uuid4
-
-from fastapi_users.exceptions import UserAlreadyExists, UserNotExists
-
-from user.auth.service.user import get_user_manager
-from user.database import get_session, get_user_db
-from user.user.domain_model import User
-from user.user.model import User as UserTable
-from user.user.schema import UserCreate, UserRead
+from uuid import UUID
 
 from sqlalchemy import select
 
+from src.auth.exceptions import UserAlreadyExists, UserNotExists
+from src.auth.schema import UserCreate, UserRead
+from src.auth.service import get_user_manager
+from src.database import get_session, get_user_db
+from src.models import User as UserTable
+from src.user.service import User
 
 get_async_session_context = asynccontextmanager(get_session)
 get_user_db_context = asynccontextmanager(get_user_db)
@@ -38,9 +35,11 @@ async def get_async_session():
 @asynccontextmanager
 async def get_user_manager(self):
     session = get_async_session()
-    async with get_user_db_context(session) as user_db:
-        async with get_user_manager_context(user_db) as user_manager:
-            yield user_manager
+    async with (
+        get_user_db_context(session) as user_db,
+        get_user_manager_context(user_db) as user_manager,
+    ):
+        yield user_manager
 
 
 class AbstractRepository(ABC):
@@ -111,7 +110,7 @@ class UserRepository(AbstractRepository):
 
 
 class FakeUserRepository(AbstractRepository):
-    def __init__(self, list_user: List[User | None]):
+    def __init__(self, list_user: list[User | None]):
         self.list_user = list_user
 
     def get_by_id(self, user_id: UUID) -> User | None:
@@ -120,7 +119,6 @@ class FakeUserRepository(AbstractRepository):
                 return user
         print(f"User {user_id=} does not exist")
         raise UserNotExists(f"User with {user_id=} does not exist")
-        
 
     def get_by_email(self, email: str):
         for user in self.list_user:
@@ -130,7 +128,7 @@ class FakeUserRepository(AbstractRepository):
 
     def add(self, user: User):
         if user.email not in [user.email for user in self.list_user]:
-                self.list_user.append(user)
+            self.list_user.append(user)
         else:
             raise UserAlreadyExists(f"User with {user.email=} already exists")
 

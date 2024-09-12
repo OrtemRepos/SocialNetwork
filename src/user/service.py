@@ -2,23 +2,17 @@ from datetime import datetime
 from typing import Union
 
 from fastapi_users.models import ID
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import EmailStr
 
-from user.user.error import AlreadyFriend, AlreadySentRequest, NotFound
-from user.user.schema import UserRead
-
-class FriendRequest(BaseModel):
-    sender_id: ID
-    receiver_id: ID
-    msg: str | None = None
-
-    model_config = ConfigDict(frozen=True)
+from src.auth.schema import UserRead
+from src.user.schema import FriendRequest
+from user.exception import AlreadyFriend, AlreadySentRequest, NotFound
 
 
 class User:
     def __init__(
         self, id: ID, first_name: str, last_name: str, email: EmailStr
-    ):  # noqa: E501
+    ):
         UserRead(
             id=id,
             first_name=first_name,
@@ -55,14 +49,18 @@ class User:
 
     def send_friendrequest(
         self, user: "User", msg: str = None
-    ) -> FriendRequest | None:  # noqa: E501
+    ) -> FriendRequest | None:
         if user in self._friend:
             raise AlreadyFriend(f"User {user=} already in friend list")
-        request = FriendRequest(sender_id=self.id, receiver_id=user.id, msg=msg)
+        request = FriendRequest(
+            sender_id=self.id, receiver_id=user.id, msg=msg
+        )
 
         if request in self.send_request:
             raise AlreadySentRequest("You have already sent a friend request")
-        accept_request = FriendRequest(sender_id=user.id, receiver_id=self.id, msg=msg)
+        accept_request = FriendRequest(
+            sender_id=user.id, receiver_id=self.id, msg=msg
+        )
 
         if accept_request in self.receive_request:
             self._request.remove(accept_request)
@@ -72,7 +70,7 @@ class User:
         user._request.add(request)
         return request
 
-    def reject_friendrequest(self, user: "User") -> FriendRequest | None:  # noqa: E501
+    def reject_friendrequest(self, user: "User") -> FriendRequest | None:
         request = self.get_request(user)
         if request in self._request:
             self._request.remove(request)
@@ -88,11 +86,15 @@ class User:
     @property
     def send_request(self):
         return [
-            request for request in self._request if request.sender_id == self.id
-        ]  # noqa: E501
+            request
+            for request in self._request
+            if request.sender_id == self.id
+        ]
 
     @property
     def receive_request(self):
         return [
-            request for request in self._request if request.receiver_id == self.id
-        ]  # noqa: E501
+            request
+            for request in self._request
+            if request.receiver_id == self.id
+        ]
