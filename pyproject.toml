@@ -1,7 +1,7 @@
 [project]
 name = "socialnetwork"
 version = "0.1.0"
-description = "Add your description here"
+description = "Backend for socialnetwork"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -17,4 +17,27 @@ dependencies = [
 dev-dependencies = [
     "alembic>=1.13.2",
     "pytest>=8.3.2",
+]
+
+[project.scripts]
+main = "src:main:"
+
+[tool.ruff]
+# Set the maximum line length to 79.
+line-length = 79
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
 ]

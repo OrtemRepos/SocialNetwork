@@ -1,5 +1,4 @@
 import uuid
-from typing import Optional
 
 from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, UUIDIDMixin
@@ -10,11 +9,11 @@ from fastapi_users.authentication import (
 )
 from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 
-from user.config import config
-from user.database import get_user_db
-from user.user.model import User
+from src.auth.config import SECRET_TOKEN_FOR_AUTH
+from src.database import get_user_db
+from src.models import User
 
-SECRET = config.SECRET_TOKEN_FOR_AUTH
+SECRET = SECRET_TOKEN_FOR_AUTH
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
@@ -22,12 +21,12 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
     verification_token_secret = SECRET
 
     async def on_after_register(
-        self, user: User, request: Optional[Request] = None
-    ):  # noqa: E501
+        self, user: User, request: Request | None = None
+    ):
         print(f"User {user.id} has registered.")
 
     async def on_after_forgot_password(
-        self, user: User, token: str, request: Optional[Request] = None
+        self, user: User, token: str, request: Request | None = None
     ):
         print(
             f"""User {user.id} hasforgot their
@@ -35,7 +34,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         )
 
     async def on_after_request_verify(
-        self, user: User, token: str, request: Optional[Request] = None
+        self, user: User, token: str, request: Request | None = None
     ):
         print(
             f"""Verification requested for user {user.id}.
@@ -44,14 +43,14 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
 
 
 async def get_user_manager(
-    user_db: SQLAlchemyUserDatabase = Depends(get_user_db),
-):  # noqa: E501
+    user_db: SQLAlchemyUserDatabase = Depends(get_user_db),  # noqa: B008
+):
     yield UserManager(user_db)
 
 
 cookie_transport = CookieTransport(
     cookie_max_age=3600, cookie_name="fastapi_users"
-)  # noqa: E501
+)
 
 
 def get_jwt_strategy() -> JWTStrategy:

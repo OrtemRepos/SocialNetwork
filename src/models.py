@@ -3,13 +3,14 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
-from sqlalchemy import TIMESTAMP, Column, ForeignKey, Table, text
+from sqlalchemy import TIMESTAMP, ForeignKey, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 created_at = Annotated[
     datetime,
     mapped_column(
-        type_=TIMESTAMP(timezone=True), server_default=text("TIMEZONE('utc', now())")
+        type_=TIMESTAMP(timezone=True),
+        server_default=text("TIMEZONE('utc', now())"),
     ),
 ]
 updated_at = Annotated[
