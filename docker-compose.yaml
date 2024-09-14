@@ -5,6 +5,8 @@ services:
   dbpostgres:
     image: postgres:16
     container_name: postgres_container
+    networks:
+      - socialnet
     env_file:
       - .env
     ports:
@@ -35,9 +37,13 @@ services:
     restart: unless-stopped
     tty: true
     stdin_open: true
+
+
   redis:
       image: "redis/redis-stack:7.4.0-v0"
       container_name: redis_container
+      networks:
+        - socialnet
       env_file:
         - ".env"
       ports:
@@ -53,18 +59,41 @@ services:
           reservations:
             cpus: '0.25'
             memory: 256M
+
       healthcheck:
-        test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping"]
-        interval: 30s
-        timeout: 10s
+        test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+        interval: 1s
+        timeout: 3s
         retries: 5
       restart: unless-stopped
       tty: true
       stdin_open: true
 
+
+  rabbitmq:
+    image: rabbitmq:4.0.0-rc.1-management-alpine
+    hostname: rabbitmq
+    networks:
+      - socialnet
+    restart: always
+    configs:
+      - source: rabit_config
+        target: /etc/rabbitmq/rabbitmq.conf
+    volumes:
+      - rabbitdata:/var/lib/rabbitmq
+    ports:
+      - 15672:15672
+      - 5672:5672
+
 volumes:
   redisdata:
   pgdata:
+  rabbitdata:
+
+configs:
+  rabit_config:
+    file: ./config/rabitmq.conf
+
 
 networks:
   socialnet:
