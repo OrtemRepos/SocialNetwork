@@ -11,17 +11,12 @@ from src.auth.service import auth_backend, get_user_manager
 router = APIRouter()
 
 router.include_router(
-    fastapi_users.get_auth_router(auth_backend),
-    tags=["auth"]
+    fastapi_users.get_auth_router(auth_backend), tags=["auth"]
 )
 router.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate),
-    tags=["auth"]
+    fastapi_users.get_register_router(UserRead, UserCreate), tags=["auth"]
 )
-router.include_router(
-    fastapi_users.get_reset_password_router(),
-    tags=["auth"]
-)
+router.include_router(fastapi_users.get_reset_password_router(), tags=["auth"])
 
 
 @router.get(

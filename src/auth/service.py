@@ -14,8 +14,8 @@ from src.auth.config import config as auth_config
 from src.config import config
 from src.database import get_user_db
 from src.email_celery.router import (
-    send_verification_email_task,
     send_forgot_password_email_task,
+    send_verification_email_task,
 )
 from src.models import User
 
