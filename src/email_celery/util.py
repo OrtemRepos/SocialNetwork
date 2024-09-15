@@ -2,9 +2,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 
-def generate_email(user_email: str, token: str, html_msg: str):
+def generate_email(
+    user_email: str, token: str, html_msg: str, subject_msg: str
+) -> MIMEMultipart:
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Confirm your email"
+    msg["Subject"] = subject_msg
     text = f"Hello, please confirm your email\nThis your token: {token}"
     html_msg = html_msg.replace("|token|", token)
     plain_msg = MIMEText(text, "plain")

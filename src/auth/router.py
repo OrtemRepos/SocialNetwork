@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from fastapi.templating import Jinja2Templates
 from fastapi_users import BaseUserManager, exceptions, models, schemas
 from fastapi_users.router.common import ErrorCode, ErrorModel
 from pydantic import EmailStr
@@ -96,3 +97,15 @@ async def request_verify_token(
         pass
 
     return None
+
+
+templates = Jinja2Templates(directory="src/auth/template")
+
+
+@router.get(
+    "/forgot-password-page", name="reset:forgot-password-page", tags=["page"]
+)
+async def forgot_password(token: str, request: Request):
+    return templates.TemplateResponse(
+        "forgot_password_form.html", {"request": request, "token": token}
+    )
