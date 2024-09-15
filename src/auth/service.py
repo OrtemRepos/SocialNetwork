@@ -13,7 +13,10 @@ from fastapi_users_db_sqlalchemy import SQLAlchemyUserDatabase
 from src.auth.config import config as auth_config
 from src.config import config
 from src.database import get_user_db
-from src.email_celery.router import send_verification_email_task
+from src.email_celery.router import (
+    send_verification_email_task,
+    send_forgot_password_email_task,
+)
 from src.models import User
 
 SECRET = auth_config.SECRET_TOKEN_FOR_AUTH
@@ -38,6 +41,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             f"""User {user.id} hasforgot their
               password.Reset token: {token}"""
         )
+        send_forgot_password_email_task.delay(user.email, token)
 
     async def on_after_request_verify(
         self, user: User, token: str, request: Request | None = None
