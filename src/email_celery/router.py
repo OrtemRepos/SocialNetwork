@@ -1,6 +1,6 @@
 import smtplib
 
-from celery import Celery
+from celery import Celery  # type: ignore
 
 from src.email_celery.celery_config import config as celery_config
 from src.email_celery.config import config

@@ -1,36 +1,27 @@
 import datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi_users import schemas
-from pydantic import EmailStr, Field
+from pydantic import Field
+
+first_name = Annotated[str, Field(min_length=2, max_length=20)]
+last_name = Annotated[str, Field(min_length=1, max_length=20)]
+password = Annotated[str, Field(min_length=8, max_length=64)]
 
 
 class UserRead(schemas.BaseUser[UUID]):
-    first_name: str = Field(repr=True)
-    last_name: str = Field(repr=True)
-    email: str = Field(repr=True)
-    is_active: bool = True
-    is_superuser: bool = False
-    is_verified: bool = False
-    created_at: datetime.datetime = datetime.datetime.now(datetime.UTC)
+    first_name: first_name
+    last_name: last_name
+    created_at: datetime.datetime
     update_at: datetime.datetime | None = None
 
 
 class UserCreate(schemas.BaseUserCreate):
-    first_name: str = Field(repr=True)
-    last_name: str = Field(repr=True)
-    email: EmailStr = Field(repr=True)
-    password: str = Field(repr=True)
-    is_active: bool = True
-    is_superuser: bool = False
-    is_verified: bool = False
+    first_name: first_name
+    last_name: last_name
 
 
 class UserUpdate(schemas.BaseUserUpdate):
-    first_name: str = Field(repr=True)
-    last_name: str = Field(repr=True)
-    password: str = Field(repr=True, default=None)
-    email: EmailStr = Field(repr=True, default=None)
-    is_active: bool = None
-    is_superuser: bool = None
-    is_verified: bool = None
+    first_name: first_name
+    last_name: last_name

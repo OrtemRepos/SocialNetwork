@@ -1,34 +1,34 @@
 from typing import Any
 
 
-class InvalidID:
+class InvalidID(Exception):
     pass
 
 
-class UserAlreadyExists:
+class UserAlreadyExists(Exception):
     pass
 
 
-class UserNotExists:
+class UserNotExists(Exception):
     pass
 
 
-class UserInactive:
+class UserInactive(Exception):
     pass
 
 
-class UserAlreadyVerified:
+class UserAlreadyVerified(Exception):
     pass
 
 
-class InvalidVerifyToken:
+class InvalidVerifyToken(Exception):
     pass
 
 
-class InvalidResetPasswordToken:
+class InvalidResetPasswordToken(Exception):
     pass
 
 
-class InvalidPasswordException:
+class InvalidPasswordException(Exception):
     def __init__(self, reason: Any) -> None:
         self.reason = reason

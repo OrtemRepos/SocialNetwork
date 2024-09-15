@@ -27,14 +27,14 @@ def async_start(func):
 
 
 @asynccontextmanager
-async def get_async_session():
+async def _get_async_session():
     async with get_async_session_context() as session:
         yield session
 
 
 @asynccontextmanager
-async def get_user_manager(self):
-    session = get_async_session()
+async def _get_user_manager(self):
+    session = _get_async_session()
     async with (
         get_user_db_context(session) as user_db,
         get_user_manager_context(user_db) as user_manager,
@@ -44,15 +44,15 @@ async def get_user_manager(self):
 
 class AbstractRepository(ABC):
     @abstractmethod
-    async def get_by_id(self, user_id: UUID) -> User:
+    def get_by_id(self, user_id: UUID):
         raise NotImplementedError
 
     @abstractmethod
-    async def get_by_email(self, email: str) -> User:
+    def get_by_email(self, email: str):
         raise NotImplementedError
 
     @abstractmethod
-    async def add(self, user: User) -> User:
+    def add(self, user: User) -> User:
         raise NotImplementedError
 
 
@@ -101,7 +101,7 @@ class UserRepository(AbstractRepository):
     @async_start
     async def list(self):
         stmt = select(UserTable)
-        async with get_async_session() as session:
+        async with _get_async_session() as session:
             res = await session.execute(stmt)
         return [
             UserRead.model_validate(user, from_attributes=True)
@@ -110,7 +110,7 @@ class UserRepository(AbstractRepository):
 
 
 class FakeUserRepository(AbstractRepository):
-    def __init__(self, list_user: list[User | None]):
+    def __init__(self, list_user: list[User]):
         self.list_user = list_user
 
     def get_by_id(self, user_id: UUID) -> User | None:
@@ -120,7 +120,7 @@ class FakeUserRepository(AbstractRepository):
         print(f"User {user_id=} does not exist")
         raise UserNotExists(f"User with {user_id=} does not exist")
 
-    def get_by_email(self, email: str):
+    def get_by_email(self, email: str) -> User | None:
         for user in self.list_user:
             if user.email == email:
                 return user

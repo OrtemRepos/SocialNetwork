@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
@@ -26,7 +26,7 @@ updated_at = Annotated[
 
 class Base(DeclarativeBase):
     repr_cols_num = 3
-    repr_cols = tuple()
+    repr_cols: tuple[Any]
 
     def __repr__(self):
         cols = []

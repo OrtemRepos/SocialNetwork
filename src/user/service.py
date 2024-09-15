@@ -1,17 +1,21 @@
 from datetime import datetime
 from typing import Union
+from uuid import UUID
 
-from fastapi_users.models import ID
 from pydantic import EmailStr
 
 from src.auth.schema import UserRead
+from src.user.exception import (
+    AlreadyFriend,
+    AlreadySentRequest,
+    NotFound,
+)
 from src.user.schema import FriendRequest
-from user.exception import AlreadyFriend, AlreadySentRequest, NotFound
 
 
 class User:
     def __init__(
-        self, id: ID, first_name: str, last_name: str, email: EmailStr
+        self, id: UUID, first_name: str, last_name: str, email: EmailStr
     ):
         UserRead(
             id=id,
@@ -25,7 +29,7 @@ class User:
         self.last_name = last_name
         self.email = email
         self._friend: set[User | None] = set()
-        self._request: set[FriendRequest | None] = set()
+        self._request: set[FriendRequest] = set()
 
     def __eq__(self, other):
         if not isinstance(other, User):
@@ -48,7 +52,7 @@ class User:
         raise NotFound(f"User {user=} not in friend list")
 
     def send_friendrequest(
-        self, user: "User", msg: str = None
+        self, user: "User", msg: str | None = None
     ) -> FriendRequest | None:
         if user in self._friend:
             raise AlreadyFriend(f"User {user=} already in friend list")
@@ -76,6 +80,7 @@ class User:
             self._request.remove(request)
             user._request.remove(request)
             return request
+        raise NotFound(f"Request from {user=} not found")
 
     def get_request(self, user: "User") -> FriendRequest | None:
         for request in self._request:

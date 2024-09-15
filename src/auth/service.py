@@ -1,6 +1,6 @@
 import uuid
 
-import redis.asyncio
+import redis
 from fastapi import Depends, Request
 from fastapi_users import BaseUserManager, UUIDIDMixin
 from fastapi_users.authentication import (
@@ -17,7 +17,9 @@ from src.email_celery.router import send_verification_email_task
 from src.models import User
 
 SECRET = auth_config.SECRET_TOKEN_FOR_AUTH
-redis = redis.asyncio.from_url(config.REDIS_URL, decode_responses=True)
+redis_connection = redis.asyncio.from_url(
+    config.REDIS_URL, decode_responses=True
+)
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
@@ -59,7 +61,7 @@ cookie_transport = CookieTransport(
 
 
 def get_redis_strategy() -> RedisStrategy:
-    return RedisStrategy(redis, lifetime_seconds=3600)
+    return RedisStrategy(redis_connection, lifetime_seconds=3600)
 
 
 auth_backend = AuthenticationBackend(

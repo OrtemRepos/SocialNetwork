@@ -1,10 +1,11 @@
-from fastapi_users.models import ID
+from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
 
 
 class FriendRequest(BaseModel):
-    sender_id: ID
-    receiver_id: ID
+    sender_id: UUID
+    receiver_id: UUID
     msg: str | None = None
 
     model_config = ConfigDict(frozen=True)

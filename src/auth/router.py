@@ -76,7 +76,7 @@ async def verify(
     "/request-verify-token",
     status_code=status.HTTP_202_ACCEPTED,
     name="verify:request-token",
-    tags=["auth"]
+    tags=["auth"],
 )
 async def request_verify_token(
     request: Request,
