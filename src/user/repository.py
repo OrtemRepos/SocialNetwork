@@ -6,7 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.exceptions import UserAlreadyExists, UserNotExists
-from src.auth.schema import UserRead
+from src.auth.service import get_user_manager, UserManager
+from src.auth.schema import UserCreate, UserRead
 from src.models import User
 
 
@@ -48,25 +49,28 @@ class UserRepository:
     @async_start
     async def add(
         self,
-        session: AsyncSession,
+        manager: UserManager,
         first_name: str,
         last_name: str,
         email: str,
         password: str,
         is_superuser: bool = False,
-    ):
+    ) -> User | None:
         try:
-            session.add(
-                User(
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=email,
-                    password=password,
-                    is_superuser=is_superuser,
-                )
+            user = UserCreate(
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                password=password,
+                is_superuser=is_superuser,
             )
+            result = await manager.create(
+                user
+            )
+            return result
         except UserAlreadyExists:
             print(f"User {email} already exists")
+            return None
 
     @async_start
     async def list(self, session: AsyncSession) -> list[User]:
