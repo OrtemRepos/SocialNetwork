@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import EmailStr
 
-from src.auth.schema import UserRead
+from src.auth.schema.user import UserRead
 from src.user.exception import (
     AlreadyFriend,
     AlreadySentRequest,

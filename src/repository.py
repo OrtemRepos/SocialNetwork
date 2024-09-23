@@ -1,22 +1,14 @@
-import asyncio
-import functools
 from uuid import UUID
 
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.exceptions import UserAlreadyExists, UserNotExists
-from src.auth.schema import UserCreate, UserRead
-from src.auth.service import UserManager
-from src.models import User
-
-
-def async_start(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        return asyncio.run(func(*args, **kwargs))
-
-    return wrapper
+from src.auth.exception.user import UserAlreadyExists, UserNotFoundException
+from src.auth.schema.user import UserCreate, UserRead
+from src.auth.util import get_password_hash
+from src.logging_config import logger
+from src.model import Friend, User
 
 
 class UserRepository:
@@ -25,36 +17,42 @@ class UserRepository:
     ) -> User | None:
         try:
             user = await session.get(User, user_id)
-            assert user is not None
+            if user is None:
+                raise UserNotFoundException(f"User {user_id} does not exist")
             UserRead.model_validate(user, from_attributes=True)
             return user
-        except UserNotExists:
-            print(f"User {user_id} does not exist")
+        except UserNotFoundException:
+            logger.exception("User not found", user_id=user_id)
+            return None
+        except ValidationError:
+            logger.exception("ValueError", user_id=user_id)
             return None
 
-    @async_start
     async def get_by_email(
         self, session: AsyncSession, email: str
     ) -> User | None:
         try:
             stmt = select(User).where(User.email == email)  # type: ignore
             user = await session.execute(stmt)
+            if user is None:
+                raise UserNotFoundException(f"User {email} does not exist")
             user_result = user.scalars().one()
             UserRead.model_validate(user_result, from_attributes=True)
             return user_result
-        except UserNotExists:
-            print(f"User {email} does not exist")
+        except UserNotFoundException:
+            logger.exception("User not found", email=email)
+            return None
+        except ValidationError:
+            logger.exception("ValueError", email=email)
             return None
 
-    @async_start
     async def add(
         self,
-        manager: UserManager,
         first_name: str,
         last_name: str,
         email: str,
         password: str,
-        is_superuser: bool = False,
+        session: AsyncSession,
     ) -> User | None:
         try:
             user = UserCreate(
@@ -62,40 +60,51 @@ class UserRepository:
                 last_name=last_name,
                 email=email,
                 password=password,
-                is_superuser=is_superuser,
             )
-            result = await manager.create(
-                user
+            user_model = User(
+                first_name=user.first_name,
+                last_name=user.last_name,
+                email=user.email,
+                password=get_password_hash(user.password),
             )
-            return result
-        except UserAlreadyExists:
-            print(f"User {email} already exists")
+            session.add(user)
+            await session.flush()
+            UserRead.model_validate(user, from_attributes=True)
+            return user_model
+        except ValidationError:
+            logger.exception("ValueError", user=user.__repr__())
             return None
 
-    @async_start
     async def list(self, session: AsyncSession) -> list[User]:
         stmt = select(User)
         session_result = await session.execute(stmt)
-        user_list = [User(*user) for user in session_result.scalars().all()]  # type: ignore[misc]
+        user_list = [User(*user) for user in session_result.scalars().all()]
         return user_list
 
-    @async_start
     async def add_friend(
         self, session: AsyncSession, user_id: UUID, friend_id: UUID
     ):
         user = await self.get_by_id(session, user_id)
         friend = await self.get_by_id(session, friend_id)
         if user and friend:
-            user.friend.add(friend)
+            user.friends.append(friend)
+            friend.friends.append(user)
+            return True
 
-    @async_start
+    async def get_friend(
+        self, user_id: UUID, friend_id: UUID, session: AsyncSession
+    ) -> UserRead:
+        user = await self.get_by_id(session, user_id)
+        stmt = select(Friend).where(User.id == friend_id)
+        return UserRead.model_validate(user, from_attributes=True)
+
     async def remove_friend(
         self, session: AsyncSession, user_id: UUID, friend_id: UUID
     ):
         user = await self.get_by_id(session, user_id)
         friend = await self.get_by_id(session, friend_id)
         if user and friend:
-            user.friend.remove(friend)
+            pass
 
 
 class FakeUserRepository:

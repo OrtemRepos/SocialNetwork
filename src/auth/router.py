@@ -1,109 +1,94 @@
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
-from fastapi.templating import Jinja2Templates
-from fastapi_users import BaseUserManager, exceptions, models, schemas
-from fastapi_users.router.common import ErrorCode, ErrorModel
+from typing import Annotated
+
+from fastapi import APIRouter, Body, Request, status
 from pydantic import EmailStr
 
-from src.auth.dependencies import fastapi_users
-from src.auth.schema import UserCreate, UserRead, UserUpdate
-from src.auth.service import auth_backend, get_user_manager
-
-router = APIRouter()
-
-router.include_router(
-    fastapi_users.get_auth_router(auth_backend), tags=["auth"]
+from src.auth.dependencies import (
+    CurrentUserDep,
+    OAuth2FormDep,
+    SessionDep,
+    UserManagerDep,
 )
-router.include_router(
-    fastapi_users.get_register_router(UserRead, UserCreate), tags=["auth"]
-)
-router.include_router(fastapi_users.get_reset_password_router(), tags=["auth"])
+from src.auth.schema.response import AccessTokenResponse
+from src.auth.schema.user import UserCreate, UserRead
+from src.schema.base import HTTPResponse
+
+auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.get(
-    "/verify/{token}",
-    response_model=UserUpdate,
-    name="verify:verify",
-    tags=["auth"],
-    responses={
-        status.HTTP_400_BAD_REQUEST: {
-            "model": ErrorModel,
-            "content": {
-                "application/json": {
-                    "examples": {
-                        ErrorCode.VERIFY_USER_BAD_TOKEN: {
-                            "summary": "Bad token, not existing user or"
-                            "not the e-mail currently set for the user.",
-                            "value": {
-                                "detail": ErrorCode.VERIFY_USER_BAD_TOKEN
-                            },
-                        },
-                        ErrorCode.VERIFY_USER_ALREADY_VERIFIED: {
-                            "summary": "The user is already verified.",
-                            "value": {
-                                "detail": ErrorCode.VERIFY_USER_ALREADY_VERIFIED  # noqa: E501
-                            },
-                        },
-                    }
-                }
-            },
-        }
-    },
-)
-async def verify(
+@auth_router.post("/register", status_code=status.HTTP_201_CREATED)
+async def register(
+    user: UserCreate,
     request: Request,
-    token: str,
-    user_manager: BaseUserManager[models.UP, models.ID] = Depends(  # noqa: B008
-        get_user_manager
-    ),
-):
-    try:
-        user = await user_manager.verify(token, request)
-        return schemas.model_validate(UserRead, user)
-    except (exceptions.InvalidVerifyToken, exceptions.UserNotExists) as exec:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=ErrorCode.VERIFY_USER_BAD_TOKEN,
-        ) from exec
-    except exceptions.UserAlreadyVerified as exec:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=ErrorCode.VERIFY_USER_ALREADY_VERIFIED,
-        ) from exec
+    user_manager: UserManagerDep,
+    session: SessionDep,
+) -> HTTPResponse:
+    result = await user_manager.create_user(user, request, session)
+    return result
 
 
-@router.post(
-    "/request-verify-token",
-    status_code=status.HTTP_202_ACCEPTED,
-    name="verify:request-token",
-    tags=["auth"],
+@auth_router.post(
+    "/access-token",
+    response_model=AccessTokenResponse,
+    status_code=status.HTTP_200_OK,
 )
-async def request_verify_token(
+async def token(
     request: Request,
-    email: EmailStr = Body(..., embed=True),  # noqa: B008
-    user_manager: BaseUserManager[models.UP, models.ID] = Depends(  # noqa: B008
-        get_user_manager
-    ),
-):
-    try:
-        user = await user_manager.get_by_email(email)
-        await user_manager.request_verify(user, request)
-    except (
-        exceptions.UserNotExists,
-        exceptions.UserInactive,
-        exceptions.UserAlreadyVerified,
-    ):
-        pass
-
-    return None
+    user_manager: UserManagerDep,
+    session: SessionDep,
+    form_data: OAuth2FormDep,
+) -> AccessTokenResponse:
+    return await user_manager.accses_token(form_data, session, request)
 
 
-templates = Jinja2Templates(directory="src/auth/template")
+@auth_router.post("/logout", status_code=status.HTTP_200_OK)
+async def logout(
+    request: Request,
+    session: SessionDep,
+    user_manager: UserManagerDep,
+    user: CurrentUserDep,
+) -> HTTPResponse:
+    user_model, token = user
+
+    res = await user_manager.logout(user_model, request)
+    return res
 
 
-@router.get(
-    "/forgot-password-page", name="reset:forgot-password-page", tags=["page"]
+@auth_router.post(
+    "/request-forgot-password", status_code=status.HTTP_202_ACCEPTED
 )
-async def forgot_password(token: str, request: Request):
-    return templates.TemplateResponse(
-        "forgot_password_form.html", {"request": request, "token": token}
+async def forgot_password(
+    user_manager: UserManagerDep,
+    email: Annotated[EmailStr, Body()],
+    session: SessionDep,
+    request: Request,
+) -> HTTPResponse:
+    user_model = await user_manager.db.get_by_email(email, session)
+    if user_model is None:
+        return HTTPResponse(status="success")
+    res = await user_manager.forgot_password_token(
+        UserRead.model_validate(user_model, from_attributes=True), request
     )
+
+    return res
+
+
+@auth_router.post("/verification", status_code=status.HTTP_202_ACCEPTED)
+async def verification(
+    user_manager: UserManagerDep, user: CurrentUserDep, request: Request
+) -> HTTPResponse:
+    user_model, token = user
+    await user_manager.check_refresh_token(token)
+    res = await user_manager.verification_token(user_model, request)
+    return res
+
+
+@auth_router.get("/protected")
+async def protected(
+    user_manager: UserManagerDep,
+    user: CurrentUserDep,
+) -> HTTPResponse:
+    user_model, token = user
+    await user_manager.check_refresh_token(token)
+
+    return HTTPResponse(status="success", detail=[user_model])

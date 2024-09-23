@@ -1,14 +1,55 @@
-import uuid
+from collections.abc import AsyncGenerator
+from typing import Annotated
+from uuid import UUID
 
-from fastapi_users import FastAPIUsers
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.service import auth_backend, get_user_manager
-from src.models import User
+from src.auth.schema.token import JWTTokenPayload
+from src.auth.schema.user import UserRead
+from src.auth.service import UserManager
+from src.auth.util import verify_jwt_token
+from src.database import get_session
+from src.repository import UserRepository
 
-fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/access-token")
+TokenDep = Annotated[str, Depends(oauth2_scheme)]
 
-current_active_user = fastapi_users.current_user(active=True)
-current_verified = fastapi_users.current_user(active=True, verified=True)
-current_active_superuser = fastapi_users.current_user(
-    active=True, superuser=True, verified=True
-)
+
+async def async_get_session() -> AsyncGenerator[AsyncSession, None]:
+    async with get_session() as session:
+        yield session
+
+
+SessionDep = Annotated[AsyncSession, Depends(async_get_session)]
+
+
+async def get_user_manager() -> AsyncGenerator[UserManager, None]:
+    yield UserManager(db=UserRepository())
+
+
+UserManagerDep = Annotated[UserManager, Depends(get_user_manager)]
+
+
+async def get_current_user(
+    request: Request, token: TokenDep, session: SessionDep
+) -> tuple[UserRead, JWTTokenPayload]:
+    token_payload = verify_jwt_token(
+        token, agent=request.headers["user-agent"]
+    )
+
+    user = await UserRepository.get(UUID(token_payload.sub), session)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="You are not authorized to access this resource",
+        )
+    return (UserRead.model_validate(user, from_attributes=True), token_payload)
+
+
+CurrentUserDep = Annotated[
+    tuple[UserRead, JWTTokenPayload], Depends(get_current_user)
+]
+OAuth2FormDep = Annotated[OAuth2PasswordRequestForm, Depends()]
